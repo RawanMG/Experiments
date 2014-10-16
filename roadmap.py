@@ -5,6 +5,20 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.collections import PolyCollection
 import sys
 
+sys.path.append('/usr/local/lib/python2.7/site-packages')
+import networkx as nx
+
+# Graph creation
+gr = nx.Graph()
+
+class Node:
+	def __init__(self, id, location):
+		self.id = id
+		self.location = location
+        
+
+
+
 def get_dist(point1, point2):
 	x = point1[0]-point2[0]
 	y = point1[1] - point2[1]
@@ -23,26 +37,48 @@ def get_shortest(start, pointlist):
 			min_dist = dist
 
 	return min_point
-
+def num_intersect(point, polygon):
+	p1 = np.array([polygon[0][0], polygon[0][1], 0])
+	p2 = np.array([polygon[2][0], polygon[2][1], 0])
+	N = np.cross(p1, p2)
+	print N
+	print np.linalg.norm(N)
+	if np.linalg.norm(N) != 0.0:
+		N = N/np.linalg.norm(N)
+	return N
 def is_inside(point, polygons):
+	print point
 	for poly in polygons:
 		size = len(poly)
 		for i in range(0, size):
-			p1 = np.array([poly[i][0], poly[i][1]]) # (x1, y1) in line l1
-			p2 = np.array([poly[(i+1)%size][0], poly[(i+1)%size][1]]) # (x2, y2) in line l2
+			p1 = np.array([poly[i][0], poly[i][1], 0]) # (x1, y1) in line l1
+			p2 = np.array([poly[(i+1)%size][0], poly[(i+1)%size][1], 0]) # (x2, y2) in line l2
 			l1 = p2-p1
-			if i-1 < 0:
-				p2 = np.array([poly[size-1][0], poly[size-1][1]])
-			else:
-				p2 = np.array([poly[i-1][0], poly[i-1][1]])
-			l2 = p2-p1
+			print l1
+			print p2
+			print p1
 
+			if i-1 <= 0:
+				p2 = np.array([poly[size-1][0], poly[size-1][1], 0])
+			else:
+				p2 = np.array([poly[i-1][0], poly[i-1][1], 0])
+			l2 = p2-p1
+			print l2
+			print p2
 			pline = np.array(point)-p1
 			cp1 = np.cross(l1, l2)
-			cp2 = np.cross(l1, pline)	
-			if np.dot(cp1, cp2) >=0:
-				return True
-	return False		
+			cp1 = cp1
+			print cp1
+			cp2 = np.cross(l1, pline)
+			cp2 = cp2
+			print pline
+			print cp2
+			#sys.exit(0)	
+			print np.dot(cp1, cp2)
+			if np.dot(cp1, cp2) < 0:
+				return False
+
+	return True		
 
 
 
@@ -70,19 +106,38 @@ if __name__ == '__main__':
 
 	path = []
 	path.append(start)
+	print is_inside([32, 15, 0], polygons)
+	sys.exit(0)
 
+	#Sampling
+	num = 0
+	points = []
+	while num <50:
+		(x, y) = (random.randint(0, 40), random.randint(0, 40))
+		if not (x, y) in points:
+			if not is_inside([x, y, 0], polygons):
+				points.append([x, y, 0])
+				gr.add_node(num)
+				num = num + 1
+	plt.plot([x for (x, y, z) in points], [y for (x, y, z) in points], 'ro')
+	plt.show()
+	print gr.nodes()
+
+
+	#connect points to every other point
+	for node in gr.nodes():
+		for node2 in gr.nodes():
+			if node != node2:
+				if not is_inside(points[node], polygons):
+					gr.add_edge(node, node2, weight=get_dist(points[node], points[node2]))
+
+	sys.exit(0)
 	while cmp(start, goal) != 0:
 		#drop 10 random points
-		points = []
-		num = 0
-		while num <10:
-			(x, y) = (random.randint(0, 40), random.randint(0, 40))
-			if not (x, y) in points:
-				points.append((x, y))
-				num = num + 1
+
+
 		
-		#plt.plot([x for (x, y) in points], [y for (x, y) in points], 'ro')
-		#plt.show()
+
 
 		while points:
 			#pick point with shortest distance from start (start, p)
