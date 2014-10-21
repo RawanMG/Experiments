@@ -9,7 +9,7 @@ sys.path.append('/usr/local/lib/python2.7/site-packages')
 import networkx as nx
 
 # Graph creation
-gr = nx.path_graph(0)
+gr = nx.Graph()
 
 class Node:
 	def __init__(self, id, location):
