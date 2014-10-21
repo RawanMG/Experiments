@@ -157,15 +157,16 @@ if __name__ == '__main__':
 				gr.add_edge(node, node2, weight=get_dist(points[node], points[node2]))
 
 	start_node = len(points)
-
 	points.append(start)
+	gr.add_node(start_node)
 	goal_node = len(points)
-	
 	points.append(goal)
+	gr.add_node(goal_node)
 
 	for node in gr.nodes():
-		gr.add_edge(start_node, node, weight=get_dist(points[start_node], points[node]))
-		gr.add_edge(node, goal_node, weight=get_dist(points[node], points[goal_node]))
+		if node != start_node and node != goal_node:
+			gr.add_edge(start_node, node, weight=get_dist(points[start_node], points[node]))
+			gr.add_edge(node, goal_node, weight=get_dist(points[node], points[goal_node]))
 	#search for shortest path
 	print points[len(points)-2]
 	print points[len(points)-1]
