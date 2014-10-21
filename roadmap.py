@@ -9,7 +9,7 @@ sys.path.append('/usr/local/lib/python2.7/site-packages')
 import networkx as nx
 
 # Graph creation
-gr = nx.Graph()
+gr = nx.path_graph(0)
 
 class Node:
 	def __init__(self, id, location):
@@ -37,6 +37,7 @@ def get_shortest(start, pointlist):
 			min_dist = dist
 
 	return min_point
+
 def num_intersect(point, polygon):
 	p1 = np.array([polygon[0][0], polygon[0][1], 0])
 	p2 = np.array([polygon[2][0], polygon[2][1], 0])
@@ -71,6 +72,9 @@ def inside_poly(point, poly):
 	return True
 
 def is_inside(point, polygons):
+	""" References:
+		http://www.blackpawn.com/texts/pointinpoly/
+	"""
 	for poly in polygons:
 		if inside_poly(point, poly):
 			return True
@@ -84,7 +88,6 @@ def pnpoly(xp, yp, x, y):
 		http://erich.realtimerendering.com/ptinpoly/
 		http://www.faqs.org/faqs/graphics/algorithms-faq/
 	"""
-
 
 	j = 1
 	c = 0
@@ -103,8 +106,8 @@ if __name__ == '__main__':
 	#init 2D road map as a 40x40 grid
 	map = [(0, 0), (0, 40), (40, 0), (40, 40)]	
 
-	start = (random.randint(0, 40), random.randint(0, 40))
-	goal = (random.randint(0, 40), random.randint(0, 40))
+	start = (1, 1)
+	goal = (39, 39)
 
 	polygons = []
 	polygon = [(2,2), (4,4), (7,7), (10,5), (7,3), (2,2)]
@@ -122,25 +125,29 @@ if __name__ == '__main__':
 
 	path = []
 	path.append(start)
-	print polygons[0]
-	xp = [p[0] for p in polygons[0]]
-	yp = [p[1] for p in polygons[0]]
+	#xp = [p[0] for p in polygons[0]]
+	#yp = [p[1] for p in polygons[0]]
 	#print pnpoly(xp, yp, 30, 5)
 	#print is_inside([35, 5, 0], polygons)
 
 	#Sampling
 	num = 0
 	points = []
+	dict = {}
 	while num <50:
 		(x, y) = (random.randint(0, 40), random.randint(0, 40))
 		if not (x, y) in points:
-			if not pnpoly(polygons, x, y):
-				points.append([x, y, 0])
+			if not is_inside([x, y, 0], polygons):
+				points.append([x, y])
+				dict[num] = [x, y]
 				gr.add_node(num)
 				num = num + 1
-	plt.plot([x for (x, y, z) in points], [y for (x, y, z) in points], 'ro')
+
+
+	plt.plot([x for (x, y) in points], [y for (x, y) in points], 'go')
+	plt.plot([start[0], goal[0]], [start[1], goal[1]], 'ro')
 	plt.show()
-	#print gr.nodes()
+	print gr.nodes()
 
 
 	#connect points to every other point
@@ -149,29 +156,32 @@ if __name__ == '__main__':
 			if node != node2:
 				gr.add_edge(node, node2, weight=get_dist(points[node], points[node2]))
 
-	sys.exit(0)
-	while cmp(start, goal) != 0:
-		#drop 10 random points
+	start_node = len(points)
 
+	points.append(start)
+	goal_node = len(points)
+	
+	points.append(goal)
 
-		
+	for node in gr.nodes():
+		gr.add_edge(start_node, node, weight=get_dist(points[start_node], points[node]))
+		gr.add_edge(node, goal_node, weight=get_dist(points[node], points[goal_node]))
+	#search for shortest path
+	print points[len(points)-2]
+	print points[len(points)-1]
+	path = nx.astar_path(gr, start_node, goal_node)
+	print path
+	print [points[p] for p in path]
 
-
-		while points:
-			#pick point with shortest distance from start (start, p)
-			point = get_shortest(start, points)
-			#check for collision
-			insideObst = is_inside(point, polygons)
-			if not insideObst:
-				path.append(point)
-				start = point
-				break
-			points.remove(point)
-		print "iteration done"
-
-	plt.plot([x for (x, y) in path], [y for (x, y) in path], 'ro')
+	#plot path
+	fig, ax = plt.subplots()
+	verts = [p for p in polygons]
+	coll = PolyCollection(verts)
+	ax.add_collection(coll)
+	ax.autoscale_view()
+	plt.plot([points[n][0] for n in path], [points[n][1] for n in path], 'ro', linewidth=2.0, linestyle='--')
+	other_p = [points[n] for n in gr.nodes() if n not in path]
+	plt.plot([x for (x, y) in other_p], [y for (x, y) in other_p], 'go')
+	
 	plt.show()
-
-
-
-
+	sys.exit(0)
