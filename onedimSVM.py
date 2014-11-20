@@ -3,13 +3,16 @@ import random
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.collections import PolyCollection
-from sklearn import svm
+from sklearn import svm, grid_search
 import sys
+import cPickle
 
 sys.path.append('/usr/local/lib/python2.7/site-packages')
 sys.path.append('/usr/local/lib')
 import networkx as nx
 
+sampling_size = 10**3
+grid_param = {'C':[1, 10, 100], 'gamma':[0.0001, 0.01, 0.1, 1]}
 def is_between(x1, x2, p):
 	if p < x2 and p > x1:
 		return 1
@@ -27,10 +30,10 @@ def make_data(filename):
 	#init line map
 	#init obstacles
 	dataset =[]
-	obst = random.randint(0, 3*(10**6)) #[random.randint(0, 1000000) for i in range(10)]
+	obst = (3*(10**6))/2 #[random.randint(0, 1000000) for i in range(10)]
 	print obst
 	#init points
-	sampling_size = 10**3
+
 	points = []
 	for i in xrange(sampling_size):
 		num = random.randint(0, 3*(10**6))
@@ -52,7 +55,7 @@ def make_data(filename):
 	#extract training data from dataset
 	x = []
 	y = []
-	train_len = int(len(dataset)*90.0/100) #90% of dataset for training
+	train_len = int(len(dataset)*98.0/100) #90% of dataset for training
 	print "Creating training set of size = %d" % train_len
 	i = 0
 	while len(x) < train_len:
@@ -77,11 +80,11 @@ def make_data(filename):
 		y_val.append(not is_between(x1, x2, p))
 		dataset.pop(0)
 
-	with open('%s_tr.csv'%filename, 'w') as f:
+	with open('%d_98_tr.csv'%filename, 'w') as f:
 		for i in range(len(y)):
 			f.write("%d,%d,%d\n"%(y[i], x[i][0], x[i][1]))
 
-	with open('%s_val.csv'%filename, 'w') as f:
+	with open('%d_2_val.csv'%filename, 'w') as f:
 		for i in range(len(y_val)):
 			f.write("%d,%d,%d\n"%(y_val[i], x_val[i][0], x_val[i][1]))
 
@@ -95,19 +98,35 @@ def read_data(filename):
 			x.append([int(line[1]), int(line[2])])
 
 	return y, x
+def crossvalidate(x, y):
+	svr= svm.SVC()
+	clf = grid_search.GridSearchCV(svr, grid_param, n_jobs=2, cv=5, verbose=1)
+	clf.fit(x, y)
+	print clf.best_estimator_
+	print clf.best_params_
+	with open('crossvalidationresult.txt', 'w') as f_out:
+		f_out.write(clf.best_estimator_)
+		f_out.write("\n")
+		f_out.write(clf.best_params_)
+
 if __name__ == '__main__':
 
-	make_data("0")
-	y, x = read_data("0_tr.csv")
-	print y
-	print x
- 	sys.exit(0)
+	#make_data(sampling_size)
+	y_val, x_val = read_data("%d_2_val.csv"%sampling_size)
+	#crossvalidate(x_val, y_val)
+	#sys.exit(0)
+	y, x = read_data("%d_98_tr.csv"%sampling_size)
+	
+ 	#sys.exit(0)
 
 
 	#train SVM
 	print "Training SVM"
-	clf = svm.SVC()
+	clf = svm.SVC(C=1.0, gamma=0.0001, class_weight='auto', verbose=1)
 	clf.fit(x, y)
+
+	with open("%d_2.pkl", 'w') as f:
+		cPickle.dump(clf, f)
 
 	num_correct = 0
 	for i in range(0, len(y_val)):
