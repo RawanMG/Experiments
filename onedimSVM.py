@@ -1,17 +1,22 @@
+import sys
+sys.path.append('/usr/local/lib/python2.7/site-packages') #SET PYTHONPATH to this on MAC
+sys.path.append('/usr/local/lib')
+sys.path.append('/usr/local/lib/python')
+sys.path.append('/System/Library/Frameworks/Python.framework/Versions/2.7/Extras/lib/python')
+
 import numpy as np
 import random
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.collections import PolyCollection
 from sklearn import svm, grid_search
-import sys
+
 import cPickle
 
-sys.path.append('/usr/local/lib/python2.7/site-packages')
-sys.path.append('/usr/local/lib')
+
 import networkx as nx
 
-sampling_size = 10**3
+sampling_size = 10**4
 grid_param = {'C':[1, 10, 100], 'gamma':[0.0001, 0.01, 0.1, 1]}
 def is_between(x1, x2, p):
 	if p < x2 and p > x1:
@@ -29,62 +34,76 @@ def comp_acc(y, y_pred):
 def make_data(filename):
 	#init line map
 	#init obstacles
-	dataset =[]
 	obst = (3*(10**6))/2 #[random.randint(0, 1000000) for i in range(10)]
 	print obst
 	#init points
 
+	"""
 	points = []
 	for i in xrange(sampling_size):
 		num = random.randint(0, 3*(10**6))
 		points.append(num)
-
+	"""
+	points = np.linspace(0, 3*(10**6), num=sampling_size)
 	print len(points)
 	plt.plot(obst, 10, 'rx')
 	plt.plot(points,[10 for y in range(len(points))] ,  'bo')
 	plt.show()
 
 	#create data set
+	data_size = 10**6
+	"""
 	dataset = []
+	
+	while len(dataset) < data_size:
+		i = random.randint(0, len(points))
+		j = random.randint(0, len(points))
+		dataset.append([points[i], points[j]])
+	"""
+	"""
 	for i in range(0, len(points)):
 		for j in range(0, len(points)):
 			if i != j:
 				dataset.append([points[i], points[j]])
+	"""
 
 
 	#extract training data from dataset
 	x = []
 	y = []
-	train_len = int(len(dataset)*98.0/100) #90% of dataset for training
+	train_len = int(data_size*90.0/100) #90% of dataset for training
 	print "Creating training set of size = %d" % train_len
-	i = 0
+
 	while len(x) < train_len:
-		x1, x2 = dataset[0]
+		i = random.randint(0, len(points)-1)
+		j = random.randint(0, len(points)-1)
+		x1, x2 = points[i], points[j]
 		p = obst
 		#if [x1, x2] not in x:
 		x.append([x1, x2])	
 		y.append( not is_between(x1, x2, p)) #True if there is a path
-		dataset.pop(0)
 
 
 
 	#validation data
-	print "Creating validation set of size = %d" % len(dataset)
+	val_len = data_size - train_len
+	print "Creating validation set of size = %d" % val_len
 	x_val = []
 	y_val = []
-	while len(dataset):
-		x1, x2 = dataset[0]
+	while len(x_val)< val_len:
+		i = random.randint(0, len(points)-1)
+		j = random.randint(0, len(points)-1)
+		x1, x2 = points[i], points[j]
 		p = obst
 		#if [x1, x2] not in x_val:
 		x_val.append([x1, x2])
 		y_val.append(not is_between(x1, x2, p))
-		dataset.pop(0)
 
-	with open('%d_98_tr.csv'%filename, 'w') as f:
+	with open('%d_uni_tr.csv'%filename, 'w') as f:
 		for i in range(len(y)):
 			f.write("%d,%d,%d\n"%(y[i], x[i][0], x[i][1]))
 
-	with open('%d_2_val.csv'%filename, 'w') as f:
+	with open('%d_uni_val.csv'%filename, 'w') as f:
 		for i in range(len(y_val)):
 			f.write("%d,%d,%d\n"%(y_val[i], x_val[i][0], x_val[i][1]))
 
@@ -112,20 +131,20 @@ def crossvalidate(x, y):
 if __name__ == '__main__':
 
 	#make_data(sampling_size)
-	y_val, x_val = read_data("%d_2_val.csv"%sampling_size)
+	y_val, x_val = read_data("%d_uni_val.csv"%sampling_size)
 	#crossvalidate(x_val, y_val)
 	#sys.exit(0)
-	y, x = read_data("%d_98_tr.csv"%sampling_size)
+	y, x = read_data("%d_uni_tr.csv"%sampling_size)
 	
  	#sys.exit(0)
 
 
 	#train SVM
 	print "Training SVM"
-	clf = svm.SVC(C=1.0, gamma=0.0001, class_weight='auto', verbose=1)
+	clf = svm.SVC(C=1.0, gamma=0.0001, max_iter=10**4, verbose=3)
 	clf.fit(x, y)
 
-	with open("%d_2.pkl", 'w') as f:
+	with open("%d_uni.pkl", 'w') as f:
 		cPickle.dump(clf, f)
 
 	num_correct = 0
