@@ -141,10 +141,10 @@ if __name__ == '__main__':
 
 	#train SVM
 	print "Training SVM"
-	clf = svm.SVC(C=1.0, gamma=0.0001, max_iter=10**4, verbose=3)
+	clf = svm.SVC(C=1.0, gamma=0.0001, max_iter=10**5, verbose=3)
 	clf.fit(x, y)
 
-	with open("%d_uni.pkl", 'w') as f:
+	with open("%d_2_uni.pkl", 'w') as f:
 		cPickle.dump(clf, f)
 
 	num_correct = 0
