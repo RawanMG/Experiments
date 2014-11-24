@@ -16,7 +16,7 @@ import cPickle
 
 import networkx as nx
 
-sampling_size = 10**4
+sampling_size = 10**5
 grid_param = {'C':[1, 10, 100], 'gamma':[0.0001, 0.01, 0.1, 1]}
 def is_between(x1, x2, p):
 	if p < x2 and p > x1:
@@ -130,7 +130,7 @@ def crossvalidate(x, y):
 
 if __name__ == '__main__':
 
-	#make_data(sampling_size)
+	make_data(sampling_size)
 	y_val, x_val = read_data("%d_uni_val.csv"%sampling_size)
 	#crossvalidate(x_val, y_val)
 	#sys.exit(0)
@@ -144,7 +144,7 @@ if __name__ == '__main__':
 	clf = svm.SVC(C=1.0, gamma=0.0001, max_iter=10**5, verbose=3)
 	clf.fit(x, y)
 
-	with open("%d_2_uni.pkl", 'w') as f:
+	with open("%d_1_uni.pkl"%(sampling_size), 'wb') as f:
 		cPickle.dump(clf, f)
 
 	num_correct = 0
